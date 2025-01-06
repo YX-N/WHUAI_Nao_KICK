@@ -16,6 +16,7 @@ option((SkillBehaviorControl) HandleStrikerLostBall,
   {
     transition
     {
+      //球被遮挡返回true
       auto ballIsOccludedByAnObstacle = [this]() -> bool
       {
         const Angle ballAngle = theFieldBall.positionRelative.angle();
@@ -25,7 +26,7 @@ option((SkillBehaviorControl) HandleStrikerLostBall,
             return true;
         return false;
       };
-
+      //striker 看不到球大于0.5s 距离球0.7m 并且球没有被遮挡
       if(playBall &&
          theFieldBall.timeSinceBallDisappeared > minBallDisappearedTime &&
          theFieldBall.positionRelative.squaredNorm() < sqr(maxDistanceToBall) &&

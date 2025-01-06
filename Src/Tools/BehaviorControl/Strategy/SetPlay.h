@@ -32,12 +32,17 @@ STREAMABLE(SetPlay,
   {
     none
   };
-
+  //1
   static unsigned ownKickOffBegin; /**< The index in the enum at which own kick-offs begin. */
+  //2
   static unsigned opponentKickOffBegin; /**< The index in the enum at which opponent kick-offs begin. */
+  //3
   static unsigned ownPenaltyKickBegin; /**< The index in the enum at which own penalty kicks begin. */
+  //4
   static unsigned opponentPenaltyKickBegin; /**< The index in the enum at which opponent penalty kicks begin. */
+  //5
   static unsigned ownFreeKickBegin; /**< The index in the enum at which own free kicks begin. */
+  //6
   static unsigned opponentFreeKickBegin; /**< The index in the enum at which opponent free kicks begin. */
 
   struct Type_Info
@@ -47,7 +52,7 @@ STREAMABLE(SetPlay,
     /** Registers the enumeration in the type registry. */
     static void reg();
   };
-
+  //下面一大段都是用index来判断是不是这个Type
   static bool isOwnKickOff(Type type)
   {
     return type >= ownKickOffBegin && type < opponentKickOffBegin;
