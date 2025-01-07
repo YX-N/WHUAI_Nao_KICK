@@ -111,7 +111,7 @@ Behavior::Behavior(const BallDropInModel& theBallDropInModel, const BallSpecific
   SET_SYMBOL(theFieldDimensions, penaltyMarkSize);
 #undef SET_SYMBOL
 
-  // Load strategies.
+  // Load strategies.战略
   FOREACH_ENUM(Strategy::Type, strategy)
   {
     if(strategy == Strategy::none)
@@ -126,7 +126,7 @@ Behavior::Behavior(const BallDropInModel& theBallDropInModel, const BallSpecific
           ballXTimestamps[condition.ballXThreshold] = BallXTimestamps();
   }
 
-  // Load tactics.
+  // Load tactics.战术
   FOREACH_ENUM(Tactic::Type, tactic)
   {
     if(tactic == Tactic::none)
@@ -253,9 +253,10 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
   for(const Agent& otherAgent : agents)
     if(otherAgent.number != self.number)
       otherAgents.push_back(&otherAgent);
+  //对容器agents进行处理去除自己的代理
 
   // Handle set plays.
-  const bool isKickingTeam = theGameState.isForOwnTeam();
+  const bool isKickingTeam = theGameState.isForOwnTeam();//是不是我们的自由球
   if(theGameState.isReady())
   {
     // Always force selection of a new set play when entering the ready state.
@@ -263,13 +264,14 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
     if(!theExtendedGameState.wasReady())
       self.proposedSetPlay = SetPlay::none;
 
+
     // During the ready state, all agents can freely propose a set play.
     const SetPlay::GameState setPlayType = theGameState.isPenaltyKick() ?
                                            (isKickingTeam ? SetPlay::ownPenaltyKick : SetPlay::opponentPenaltyKick) :
                                            (isKickingTeam ? SetPlay::ownKickOff : SetPlay::opponentKickOff);
     if(!SetPlay::isCompatible(setPlayType, self.proposedSetPlay) || !checkSetPlayStartConditions(self.proposedSetPlay, agents, true))
     {
-      switch(setPlayType)
+      switch(setPlayType)//半随机选择战术
       {
         case SetPlay::ownKickOff:
           self.proposedSetPlay = selectNewSetPlay<OwnKickOff>(agents, strategies[strategy].ownKickOffs, false);
@@ -294,6 +296,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
     self.acceptedSetPlay = self.proposedSetPlay;
     self.setPlayStep = -1;
   }
+  
   else if(theGameState.isSet())
   {
     // During the set state, the selected set play cannot change anymore (even if its start conditions do not hold anymore).
@@ -307,6 +310,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
     self.acceptedSetPlay = self.proposedSetPlay;
     self.setPlayStep = self.proposedSetPlay == SetPlay::none ? -1 : 0;
   }
+
   else
   {
     ASSERT(theGameState.isPlaying());
@@ -322,6 +326,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
       if(theGameState.state != theExtendedGameState.stateLastFrame)
         self.proposedSetPlay = SetPlay::none;
 
+      //处理当前的战术不合适的情况（TODO：isCompatible检查函数）
       // If the current proposal is incompatible or the proposal has not been committed yet and its start conditions
       // do not hold anymore, a new free kick is selected.
       const SetPlay::GameState setPlayType = isKickingTeam ? SetPlay::ownFreeKick : SetPlay::opponentFreeKick;
@@ -331,7 +336,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
         self.proposedSetPlay = evaluateVotes<SetPlay::Type, &Agent::proposedSetPlay>(agents, [this, &agents, &setPlayType](auto setPlay)
         {
           return SetPlay::isCompatible(setPlayType, setPlay) && checkSetPlayStartConditions(setPlay, agents, true);
-        });
+        });//投票选择合适的战术，如果没有就完全随机选择战术
         if(self.proposedSetPlay == SetPlay::none)
         {
           switch(setPlayType)
@@ -349,7 +354,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
         }
         self.setPlayStep = -1;
       }
-
+     
       // Under certain conditions, commit the free kick to allow it to start.
       // TODO: This does not work under very special circumstances.
       if(std::all_of(agents.begin(), agents.end(), [&](const Agent& agent) {return SetPlay::isCompatible(setPlayType, agent.proposedSetPlay);}))
@@ -806,8 +811,10 @@ void Behavior::assignRoles(std::vector<Agent>& agents, Agent& self, const std::v
 
 SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
 {
+  //ready是机器人从边线走到初始位置的过程
   if(theGameState.isReady())
   {
+    //根据对方球员上次开球的位置来改变自己的初始位置
     if(!theOpposingKickoff.lastVariations.empty())
     {
       // the agent's basePose gets changed depending on the predicted kickoff variation and the agent's position
@@ -822,9 +829,11 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
     }
     return SkillRequest::Builder::walkTo(agent.basePose);
   }
+  //set是到达初始位置以后等待游戏开始，一般为10s。
   else if(theGameState.isSet())
     return SkillRequest::Builder::stand();
 
+  //团队球无效并且看不到球时间比较久此处为8s，进入找球（BallSearch.h）
   if(!theTeammatesBallModel.isValid && theFrameInfo.getTimeSince(agent.timeWhenBallLastSeen) > yetAnotherBallThreshold)
     return ballSearch->execute(agent, otherAgents);
 
@@ -833,15 +842,18 @@ SkillRequest Behavior::execute(const Agent& agent, const Agents& otherAgents)
     const std::vector<SetPlay::Action>* actions = nullptr;
     for(const SetPlay::Position& position : setPlays[agent.proposedSetPlay]->positions) // TODO: here proposed, too?
       if(agent.position == Tactic::Position::mirrorIf(position.position, agent.acceptedMirror))
-        actions = &position.actions;
+        actions = &position.actions;//战术位置相同则决定action
     if(actions && !actions->empty() && (static_cast<std::size_t>(agent.setPlayStep) < actions->size() + 1))
     {
+      //如果setplayStep=0,就先走到预定位置 
       if(!agent.setPlayStep)
         return SkillRequest::Builder::walkTo(agent.basePose);
       const SetPlay::Action& action = (*actions)[agent.setPlayStep - 1];
       return setPlayActions[action.type] ? setPlayActions[action.type]->execute(action, agent, otherAgents) : SkillRequest::Builder::empty();
+      //由setplay定位球来决定行为shot,pass,wait,mark,position,
     }
   }
+  //由role角色来决定行为 activerole和positionrole
   return roles[agent.role] ? roles[agent.role]->execute(agent, otherAgents) : SkillRequest::Builder::empty();
 }
 

@@ -46,7 +46,7 @@ private:
   const int lastBallPositionThreshold = 6000; /**< if the last known ball position was longer that this not in view at the beginning of the search check it first. */
   const float ignoreVoronoiThreshold = 1500.f; /**< if the last known ball position is closer that this check it first even if it is outside the Voronoi cell */
 
-  option(Root)
+  option(Root)//找球函数逻辑，TODO
   {
     const Pose2f goalCenterOnFieldWithOffset = Pose2f(0.f, theFieldDimensions.xPosOwnGoalLine + goalLineXOffset, 0.f);
     const Pose2f goalCenterRelativeWithOffset = theRobotPose.inverse() * goalCenterOnFieldWithOffset;

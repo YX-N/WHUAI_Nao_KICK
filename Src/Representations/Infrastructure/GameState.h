@@ -433,7 +433,7 @@ STREAMABLE(GameState,
   (unsigned)(0) timeWhenPenaltyEnds, /**< Time when the own penalty is expected to end (0 -> not penalized). */
 });
 
-STREAMABLE(ExtendedGameState,
+STREAMABLE(ExtendedGameState,//用来存放上一个gamestate
 {
   bool wasInitial(bool orStandby = true) const
   {

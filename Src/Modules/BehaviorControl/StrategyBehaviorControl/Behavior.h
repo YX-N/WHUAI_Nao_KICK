@@ -55,7 +55,7 @@ public:
   void postProcess();
 
   /**
-   * Executes the whole thing.
+   * Executes the whole thing.执行整个过程
    * @param strategy The strategy that is being played.
    * @param self The agent that executes this function.
    * @param agents All agents in the team (including \c self).
@@ -65,7 +65,7 @@ public:
 
 private:
   /**
-   * Assign positions to all agents.
+   * Assign positions to all agents.为所有代理分配位置
    * @param tactic The current tactic.
    * @param setPlay The current set play.
    * @param agents The agents that should get a position (every agent will have \c position and \c basePose set).
@@ -76,7 +76,7 @@ private:
   void assignPositions(Tactic::Type tactic, SetPlay::Type setPlay, std::vector<Agent>& agents, bool dontChangePositions, bool& proposedMirror, bool& acceptedMirror) const;
 
   /**
-   * Assign roles to all agents.
+   * Assign roles to all agents.为所有代理分配角色
    * @param agents The agents that should get a role (every agent will have \c role set).
    * @param self The agent that executeds this function.
    * @param otherAgents All other agents (excluding \c agent).
@@ -84,7 +84,7 @@ private:
   void assignRoles(std::vector<Agent>& agents, Agent& self, const std::vector<const Agent*>& otherAgents) const;
 
   /**
-   * Executes the selected role for an agent.
+   * Executes the selected role for an agent.为该代理执行所选角色
    * @param agent The agent for which to do the calculations.
    * @param otherAgents All other agents (excluding \c agent).
    * @return The resulting skill request.
@@ -92,7 +92,7 @@ private:
   SkillRequest execute(const Agent& agent, const Agents& otherAgents);
 
   /**
-   * Selects a set play.
+   * Selects a set play.选择一种战术（shoot，pass，wait，mark，position）
    * @tparam SetPlayType The type of set play that must be chosen from.
    * @param agents The list of agents.
    * @param setPlays The set of set plays of the given type.
@@ -123,7 +123,7 @@ private:
   static std::vector<float> getAssignmentCost(const Eigen::MatrixXf& costMatrix, const std::vector<std::size_t>& positionIndices);
 
   /**
-   * Determines the agent which should have an active role.
+   * Determines the agent which should have an active role.（activerole只有进攻）
    * @param self The agent that executes this function.
    * @param agents All other agents (excluding \c self).
    * @param assign Whether \c nextRole should be set.

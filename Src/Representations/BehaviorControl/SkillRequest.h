@@ -34,6 +34,8 @@ STREAMABLE(SkillRequest,
     clear,
   });
 
+  //策略层传递给行为层的指令
+  //这些函数就是设置skillrequest的skill
   struct Builder
   {
     // All coordinates/angles/directions are in field coordinates.
