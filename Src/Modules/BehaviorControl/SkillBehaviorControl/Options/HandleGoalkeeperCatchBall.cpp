@@ -1,6 +1,8 @@
 #include "SkillBehaviorControl.h"
 #include "Tools/BehaviorControl/Interception.h"
 
+
+//TODO:守门员扑球逻辑，这里可以去看一下去年的守门员代码和这个比较一下
 option((SkillBehaviorControl) HandleGoalkeeperCatchBall)
 {
   initial_state(notCatching)
