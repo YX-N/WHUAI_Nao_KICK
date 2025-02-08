@@ -441,7 +441,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
     }
   }
 
-  // Select a tactic.
+  // Select a tactic.如果有setplay就用setplay对应的tactic，没有就投票
   if(self.acceptedSetPlay != SetPlay::none)
     self.proposedTactic = self.acceptedTactic = setPlays[self.acceptedSetPlay]->tactic;
   else
@@ -449,7 +449,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
     // Reset the set play step.
     self.setPlayStep = -1;
 
-    // Check if there was previously no tactic.
+    // Check if there was previously no tactic.如果之前没有tactic
     if(self.proposedTactic == Tactic::none)
     {
       // Initialize the proposed tactic with the current majority (for stability).
