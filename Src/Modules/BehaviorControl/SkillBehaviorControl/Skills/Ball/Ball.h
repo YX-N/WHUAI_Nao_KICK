@@ -13,6 +13,7 @@ option(ClearBall);
 option(DirectKickOff);
 
 /** This skill dribbles the ball to the goal. */
+// 带球向对方球门前进
 option(DribbleToGoal);
 
 /**
@@ -59,19 +60,20 @@ option(GoToBallAndKick, args((Angle) targetDirection,
                              (const Rangea&)({0_deg, 0_deg}) directionPrecision));
 
 /** This skill plays the ball when the own goal posts constrain the possible kick poses. */
+// 当球在己方球门附近，且可能的踢球姿势受到球门柱限制时，使用该技能处理球。
 option(HandleBallAtOwnGoalPost);
 
 /**
- * This skill intercepts a rolling ball with the goal that it does not pass the y axis of this robot.
- * @param interceptionMethods A bit set of methods that may be used to intercept the ball (from Interception::Method).
- * @param allowGetUp Whether the robot is allowed to get up afterwards.
- * @param allowDive Whether the robot is allowed to actually dive. Otherwise, only sounds are played to indicate what it would do.
+ * This skill intercepts a rolling ball with the goal that it does not pass the y axis of this robot.拦截滚动的球，目标是不让球越过机器人的 y 轴。
+ * @param interceptionMethods A bit set of methods that may be used to intercept the ball (from Interception::Method).可以用于拦截球的方法的位集（来自 Interception::Method）
+ * @param allowGetUp Whether the robot is allowed to get up afterwards.机器人拦截球后是否允许起身，默认值为 true。
+ * @param allowDive Whether the robot is allowed to actually dive. Otherwise, only sounds are played to indicate what it would do.机器人是否允许实际进行扑球动作，否则仅播放声音表示它会做什么，默认值为 true。
  */
 option(InterceptBall, args((unsigned) interceptionMethods,
                            (bool)(true) allowGetUp,
                            (bool)(true) allowDive));
 
-/** This skill kicks the ball at the (opponent's) goal. It may revert to dribbling if the goal is unreachable. */
+/** This skill kicks the ball at the (opponent's) goal. It may revert to dribbling if the goal is unreachable. 向对方球门踢球，如果无法直接射门，可能会转换为带球动作。*/
 option(KickAtGoal);
 
 /**
@@ -81,7 +83,7 @@ option(KickAtGoal);
 option(PassToTeammate, args((int) playerNumber));
 
 /**
- * This skill walks very carefully to a kick pose and executes a kick there.
+ * This skill walks very carefully to a kick pose and executes a kick there.罚球者非常小心地移动到踢球姿势并执行踢球动作。
  * @param kickPose The pose at which the kick should be executed in robot-relative coordinates
  * @param kickType The kick type that should be executed there
  * @param walkSpeed The walking speed as ratio of the maximum speed in [0, 1]
@@ -90,8 +92,8 @@ option(PenaltyStrikerGoToBallAndKick, args((const Pose2f&) kickPose,
                                            (KickInfo::KickType) kickType,
                                            (float) walkSpeed));
 
-/** This skill plays the ball under consideration of the skill request. */
+/** This skill plays the ball under consideration of the skill request. 根据技能请求来处理球，综合考虑各种情况进行带球、传球、射门等操作。*/
 option(PlayBall);
 
-/**  Skill for dueling an opponent. */
+/**  Skill for dueling an opponent.争夺球权 */
 option(Zweikampf);
