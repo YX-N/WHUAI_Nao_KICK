@@ -39,7 +39,7 @@ private:
   SkillRequest skillRequest; /**< Skill request for ballSearch behavior */
   Agents agents;
   const float goalLineXOffset = 50.f;
-  const float minRadius = 20.f;
+  const float minRadius = 20.f;//用于守门员避球
   float initialRadius;
   const Agent* agent;
 
@@ -48,10 +48,11 @@ private:
 
   option(Root)//找球函数逻辑，TODO
   {
-    const Pose2f goalCenterOnFieldWithOffset = Pose2f(0.f, theFieldDimensions.xPosOwnGoalLine + goalLineXOffset, 0.f);
+    const Pose2f goalCenterOnFieldWithOffset = Pose2f(0.f, theFieldDimensions.xPosOwnGoalLine + goalLineXOffset, 0.f);//守门员移动目标位置
     const Pose2f goalCenterRelativeWithOffset = theRobotPose.inverse() * goalCenterOnFieldWithOffset;
 
-    const auto getBallCell = [&]
+    //更新找球搜索网格（BallSearchAreas.grid），并找到离球最后一次被发现时所在的位置最近的网格区域
+    const auto getBallCell = [&]   
     {
       // Todo: refactor the grid to find positions by indices
       // find the cell next to the ball
@@ -66,6 +67,14 @@ private:
     /**
      * return true if the condition to first check the last ball position is met
      */
+
+    /*
+    判断球是否有较大可能在原位置，若有可能在原位置则优先检查球最后的位置(关键条件)
+    条件：（同时满足）
+        1.是否未被检查时间超过阈值(lastBallPositionThreshold)
+        2.最后位置是否离机器人较近(小于阈值ignoreVoronoiThreshold)，或处于该机器人的基础姿势在战术中的Voronoi图区域(?)。
+        3.不处于任意球阶段或处于推任意球阶段（？）TODO
+    */
     const auto checkNearLastBallCondition = [&](const BallSearchAreas::Cell nextCellToBall)
     {
       const bool longerNotChecked = theFrameInfo.getTimeSince(nextCellToBall.timestamp) > lastBallPositionThreshold;
@@ -77,7 +86,7 @@ private:
     };
 
     //the initial ballSearch
-    initial_state(initial)
+    initial_state(initial)//状态转移见wiki
     {
       transition
       {
@@ -100,7 +109,7 @@ private:
       BallSearchAreas::Cell nextCellToBall = getBallCell();
       transition
       {
-        if(!checkNearLastBallCondition(nextCellToBall))
+        if(!checkNearLastBallCondition(nextCellToBall))//条件如上所述（Line 72）
         {
           if(agent->isGoalkeeper)
             goto goalkeeper;
@@ -110,12 +119,12 @@ private:
       }
       action
       {
-        skillRequest = SkillRequest::Builder::observe(nextCellToBall.positionOnField);
+        skillRequest = SkillRequest::Builder::observe(nextCellToBall.positionOnField);//查看离球最后位置最近的cell
       }
     }
 
     // if the ball is lost in a non-standard situation, the robot will use the ballSearchAreas Grid to search the ball.
-    state(gridSearch)
+    state(gridSearch)//TODO
     {
       transition
       {
@@ -126,11 +135,12 @@ private:
       }
       action
       {
-        skillRequest = SkillRequest::Builder::observe(theBallSearchAreas.cellToSearchNext(*agent));
+        skillRequest = SkillRequest::Builder::observe(theBallSearchAreas.cellToSearchNext(*agent));//按cell的优先级，时间戳遍历搜索网格
       }
     }
 
     //BallSearch Behavior for the Goalkeeper
+    //守门员子状态机，详见Wiki状态图
     state(goalkeeper)
     {
       transition
@@ -185,7 +195,7 @@ private:
     {
       transition
       {
-        if((std::abs(goalCenterRelativeWithOffset.translation.angle()) < 10_deg))
+        if((std::abs(goalCenterRelativeWithOffset.translation.angle()) < 10_deg))//允许误差，防止机器一直原地转向
           goto goalkeeperWalkToTarget;
       }
       action
@@ -195,13 +205,14 @@ private:
     }
 
     // while searching for the ball the goalkeeper should avoid touching the ball to avoid scoring an own goal.
+    //防止乌龙球，实现方法为相对球门中心向外侧移动至少minRadius距离
     state(goalkeeperAvoidBall)
     {
       transition
       {
         const float GoalkeeperToGoalLineCenter = (theRobotPose.translation - Vector2f(theFieldDimensions.xPosOwnGoalLine, 0.f)).norm();
         if(GoalkeeperToGoalLineCenter > initialRadius + minRadius)
-          goto goalkeeperTurnToTarget;
+          goto goalkeeperTurnToTarget;//完成避球逻辑后尝试返回原位置
       }
       action
       {

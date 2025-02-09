@@ -22,7 +22,7 @@ STREAMABLE(BallSearchAreas,
 
     (Vector2f) positionOnField, /**< position of the cell in field coordinates*/
     (unsigned) timestamp,/**< the timestamp of the cell, time since last checked*/
-    (unsigned)(1) priority, /**< the priority of the cell, calculated out of the timestamp anf the current game state*/
+    (unsigned)(1) priority, /**< the priority of the cell, calculated out of the timestamp and the current game state*/
   });
   FUNCTION(Vector2f(const Agent& agent)) cellToSearchNext;  /**< function that returns the cell with the highest score calculated by multiplying the timestamp and the priority.*/
   FUNCTION(std::vector<BallSearchAreas::Cell>(const Agent& agent)) filterCellsToSearch; /**< function that filters the cells of the ballsearch grid that are inside the Voronoi region of the robot*/
