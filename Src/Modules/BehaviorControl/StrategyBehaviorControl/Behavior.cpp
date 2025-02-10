@@ -480,8 +480,9 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
              condition.timeSinceBallBehindThresholdGE <= theFrameInfo.getTimeSince(ballXTimestamp->second.lastTimeWhenNotBehind) &&
              (!condition.sacAlternateTactic.has_value() || condition.sacAlternateTactic == theIndirectKick.sacAlternateTactic);
     };
+    //对决策里面的战术循环，决策里面只有两个t033和t222
     for(const Strategy::TacticState& state : strategies[strategy].tactics)
-    {
+    {//如果是投票出来的战术就检查跳转条件checkTransitionConditions是否
       if(state.tactic == self.proposedTactic)
       {
         for(const Strategy::TacticState::Transition& transition : state.transitions)
@@ -493,6 +494,7 @@ SkillRequest Behavior::update(Strategy::Type strategy, Agent& self, std::vector<
         goto foundTactic;
       }
     }
+    
     ASSERT(!strategies[strategy].tactics.empty());
     self.proposedTactic = strategies[strategy].tactics[0].tactic;
 
@@ -781,10 +783,11 @@ void Behavior::assignRoles(std::vector<Agent>& agents, Agent& self, const std::v
 {
   if(theGameState.isPlaying())
   {
+    //先由战术角色转为PositionRole。再决定ActiveRole
     // By default, assign everyone to their position role.
     for(Agent& agent : agents)
       agent.nextRole = PositionRole::toRole(PositionRole::fromPosition(agent.position));
-
+    //TODO:决定谁是ActiveRole也就是谁去playball
     determineActiveAgent(self, otherAgents, true);
   }
   else
