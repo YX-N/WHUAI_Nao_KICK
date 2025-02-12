@@ -22,33 +22,33 @@ namespace HandleBallAtOwnGoalPost
 {
   struct ContourAngleOffsets
   {
-    Angle leftAngleOffset; /**< The offset to the left goal post tangent to avoid standing in a goal post. */
-    Angle rightAngleOffset; /**< The offset to the right goal post tangent to avoid standing in a goal post. */
+    Angle leftAngleOffset; /**< The offset to the left goal post tangent to avoid standing in a goal post. 左球门柱切线偏移角度*/
+    Angle rightAngleOffset; /**< The offset to the right goal post tangent to avoid standing in a goal post. 右球门柱切线偏移角度*/
   };
 
-  std::array<ContourAngleOffsets, KickInfo::numOfKickTypes> init(const KickInfo& theKickInfo)
+  std::array<ContourAngleOffsets, KickInfo::numOfKickTypes> init(const KickInfo& theKickInfo)// KickInfo，包含了每种踢球类型的相关信息
   {
     std::array<ContourAngleOffsets, KickInfo::numOfKickTypes> contourAngleOffsets;
 
     // This, of course, belongs into a configuration file.
-    std::vector<Vector2f> robotShape = {{-30.f, 120.f}, {50.f, 120.f}, {110.f, 80.f}, {110.f, -80.f}, {50.f, -120.f}, {-30.f, -120.f}};
+    std::vector<Vector2f> robotShape = {{-30.f, 120.f}, {50.f, 120.f}, {110.f, 80.f}, {110.f, -80.f}, {50.f, -120.f}, {-30.f, -120.f}};// 机器人的形状的接触点？
 
-    FOREACH_ENUM(KickInfo::KickType, kickType)
+    FOREACH_ENUM(KickInfo::KickType, kickType)// 遍历踢球类型
     {
       const Vector2f& ballOffset = theKickInfo[kickType].ballOffset;
-      const Angle baseAngle = ballOffset.angle();
+      const Angle baseAngle = ballOffset.angle();// 获取当前踢球类型的球偏移量 ballOffset，并计算其角度 baseAngle
       Angle max = -pi, min = pi;
       for(const Vector2f& contactPoint : robotShape)
       {
         const Angle angle = (ballOffset + contactPoint).angle();
-        const Angle angleInBase = Angle::normalize(angle - baseAngle);
+        const Angle angleInBase = Angle::normalize(angle - baseAngle);// 计算接触点与球偏移量之和的角度 angle，并将其转换为相对于 baseAngle 的角度 angleInBase
         if(angleInBase > max)
           max = angleInBase;
         if(angleInBase < min)
           min = angleInBase;
       }
       contourAngleOffsets[kickType].leftAngleOffset = -Angle::normalize(pi - max + baseAngle + theKickInfo[kickType].rotationOffset);
-      contourAngleOffsets[kickType].rightAngleOffset = -Angle::normalize(pi - min + baseAngle + theKickInfo[kickType].rotationOffset);
+      contourAngleOffsets[kickType].rightAngleOffset = -Angle::normalize(pi - min + baseAngle + theKickInfo[kickType].rotationOffset);// 计算左、右球门柱切线偏移角度（精确值，考虑了机器人形状和踢球类型，踢球姿势会影响偏移角度）
     }
     return contourAngleOffsets;
   }
@@ -57,20 +57,21 @@ using namespace HandleBallAtOwnGoalPost;
 using enum KickInfo::KickType;
 
 option((SkillBehaviorControl) HandleBallAtOwnGoalPost,
-       defs((float)(500.f) radiusHandlingArea, /**< The radius of the area around the goal posts which shall receive special handling. */
-            (float)(1.2f) hysteresisMultiplierHandlingArea, /**< If this card was previously active, the radius is multiplied by this factor. */
-            (float)(100.f) ballGoalPostTangentOffset, /**< This amount of space should fit between the goal post and the ball. */
-            (float)(50.f) robotGoalPostTangentOffset, /**< This amount of space should fit between the goal post and the robot. */
-            (float)(500.f) hysteresisDecisionPenalty, /**< Changing the decision of the previous frame results in this penalty to the time. */
+       defs((float)(500.f) radiusHandlingArea, /**< The radius of the area around the goal posts which shall receive special handling. 处理区域半径*/
+            (float)(1.2f) hysteresisMultiplierHandlingArea, /**< If this card was previously active, the radius is multiplied by this factor. 滞后乘数*/
+            (float)(100.f) ballGoalPostTangentOffset, /**< This amount of space should fit between the goal post and the ball. 球与球门柱的切线偏移*/
+            (float)(50.f) robotGoalPostTangentOffset, /**< This amount of space should fit between the goal post and the robot. 机器人与球门柱的切线偏移*/
+            (float)(500.f) hysteresisDecisionPenalty, /**< Changing the decision of the previous frame results in this penalty to the time. 决策滞后惩罚*/
             (std::vector<KickInfo::KickType>)({walkForwardsLeft, walkForwardsRight,
                                                walkForwardsLeftLong, walkForwardsRightLong,
-                                               walkTurnLeftFootToRight, walkTurnRightFootToLeft}) availableKicks, /**< The kicks that may be selected. */
-            (float)(600.f) maxObstacleDistanceToBallForRiskyKicks, /**< If an obstacle is at least this close to the ball, allow for risky kicks. * */
-            (Angle)(5_deg) distanceToSectorBorder), /**< Buffer size for sector used for the kick direction, to determine the precision range. */
+                                               walkTurnLeftFootToRight, walkTurnRightFootToLeft}) availableKicks, /**< The kicks that may be selected. 可用的踢球类型*/
+            (float)(600.f) maxObstacleDistanceToBallForRiskyKicks, /**< If an obstacle is at least this close to the ball, allow for risky kicks. 允许冒险踢球的最大障碍物与球的距离* */
+            (Angle)(5_deg) distanceToSectorBorder), /**< Buffer size for sector used for the kick direction, to determine the precision range. 用于确定踢球方向精度范围的扇形缓冲区大小*/
        vars((std::array<bool, Arms::numOfArms>)({false, false}) armWasBack, /**< Whether the arm was back in the previous frame. */
             (KickInfo::KickType)(KickInfo::numOfKickTypes) lastKickType, /**< The kick type that has been selected in the previous frame. */
             (std::array<ContourAngleOffsets, KickInfo::numOfKickTypes>)(init(theKickInfo)) contourAngleOffsets))
 {
+  // 根据机器人与球门柱的位置关系和手臂上一帧的状态，决定是否将手臂置于后方。如果满足条件，则调用 KeyFrameArms 函数将指定手臂置于后方（仅守门员？）
   const auto setArm = [&](Arms::Arm arm, const Vector2f& goalPost)
   {
     if((armWasBack[arm] = (theRobotPose.translation - goalPost).squaredNorm() < sqr(armWasBack[arm] ? radiusHandlingArea * hysteresisMultiplierHandlingArea : radiusHandlingArea) &&
@@ -84,6 +85,7 @@ option((SkillBehaviorControl) HandleBallAtOwnGoalPost,
   bool obstacleNear = false;
   Rangea precisionRange(0_deg, 0_deg);
 
+  //  计算最佳踢球方式的函数，该函数的主要目标是在考虑球门柱、障碍物等因素的情况下，从可用的踢球类型中选择最佳的踢球方式和对应的扇形区域。具体步骤包括构建（blueprintWheel）、为每种踢球类型构建单独的扇形轮、筛选出可用的自由扇形区域，并根据到达踢球位置的时间（TTRP）来确定最佳的扇形区域和踢球类型
   const auto calcBestKick = [&]
   {
     KickInfo::KickType drawKickType = KickInfo::numOfKickTypes;
@@ -160,7 +162,7 @@ option((SkillBehaviorControl) HandleBallAtOwnGoalPost,
 
         const Pose2f kickPoseRelative = theRobotPose.inverse() * KickSelection::calcOptimalKickPoseForTargetAngleRange(sector.angleRange, theRobotPose, theFieldBall.positionOnField, theKickInfo[kickType].ballOffset, theKickInfo[kickType].rotationOffset);
         const float ttrp = KickSelection::calcTTRP(kickPoseRelative, theWalkingEngineOutput.maxSpeed) + theKickInfo[kickType].executionTime + (kickType == lastKickType ? 0.f : hysteresisDecisionPenalty);
-        if(ttrp < bestTTRP)
+        if(ttrp < bestTTRP)// 在计算到达踢球位置的时间（TTRP），并选择 TTRP 最小的踢球方式和踢球姿势
         {
           bestKick = kickType;
           bestKickPoseRelative = kickPoseRelative;
@@ -173,7 +175,7 @@ option((SkillBehaviorControl) HandleBallAtOwnGoalPost,
     }
     lastKickType = bestKick;
     setArm(Arms::left, usedGoalPost);
-    setArm(Arms::right, usedGoalPost);
+    setArm(Arms::right, usedGoalPost);// 同时控制机器人手臂姿势
   };
 
   calcBestKick();
@@ -181,9 +183,9 @@ option((SkillBehaviorControl) HandleBallAtOwnGoalPost,
   common_transition
   {
     if(bestKick != KickInfo::numOfKickTypes)
-      goto clear;
+      goto clear;//没有选择合适的踢球方式
     else
-      goto zweikampf;
+      goto zweikampf;// 选择了合适的踢球方式
   }
 
   initial_state(zweikampf)
@@ -198,7 +200,7 @@ option((SkillBehaviorControl) HandleBallAtOwnGoalPost,
   {
     action
     {
-      GoToBallAndKick({.targetDirection = Angle::normalize(bestKickPoseRelative.rotation - theKickInfo[bestKick].rotationOffset),
+      GoToBallAndKick({.targetDirection = Angle::normalize(bestKickPoseRelative.rotation - theKickInfo[bestKick].rotationOffset),// 踢向最佳踢球姿势时的方向（最佳根据球到达的时间最短）
                        .kickType = bestKick,
                        .alignPrecisely = obstacleNear ? KickPrecision::justHitTheBall : KickPrecision::notPrecise,
                        .directionPrecision = precisionRange});
