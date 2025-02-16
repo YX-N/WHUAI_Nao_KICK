@@ -29,7 +29,7 @@ void ClearTargetProvider::update(ClearTarget& theClearTarget)
   {
     if(theFrameInfo.time != timeWhenBestKickWasUpdated)
     {
-      calcBestKick();
+      calcBestKick();//见HandleBallAtOwnGoalPost.cpp(包括最佳踢球姿势，扇形区域的确定等)
       timeWhenBestKickWasUpdated = theFrameInfo.time;
     }
     return bestKick;
