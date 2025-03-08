@@ -114,6 +114,9 @@ option((SkillBehaviorControl) PassToTeammate,
   };
 
   // Modify the kick target when the receiver changed from last frame or there was no last kick target.
+    // teammate 不为空指针，即找到了要传球的队友。
+    // lastPassTarget 等于当前队友的编号，说明传球目标没有改变。
+    // lastKickTarget 不为零向量，即上一帧有有效的踢球目标。
   const auto keepLastKickTarget = [&]() -> bool
   {
     return teammate &&
@@ -121,7 +124,7 @@ option((SkillBehaviorControl) PassToTeammate,
     lastKickTarget != Vector2f::Zero();
   };
 
-  // Calculate the target pose in robot-relative coordinates for waiting behind the ball to minimize adjustment steps when executing the kick later on.
+  // Calculate the target pose in robot-relative coordinates for waiting behind the ball to minimize adjustment steps when executing the kick later on.计算机器人在球后方等待的目标位姿，以减少后续踢球时的调整步骤。
   const auto calculateWaitingPose = [&]() -> Pose2f
   {
     // Use parameters from the kick info to find the preferred waiting position behind the ball.
@@ -134,7 +137,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return Pose2f(kickAngle, theFieldInterceptBall.interceptedEndPositionRelative).rotate(kickRotationOffset).translate(kickBallOffset);
   };
 
-  // Calculates the angular sectors of the known opponents from the obstacle model.
+  // Calculates the angular sectors of the known opponents from the obstacle model.根据全局对手模型计算已知对手在球位置周围形成的角度扇形区域。
   const auto calculateObstacleSectors = [&](const Vector2f& ballPositionOnField) -> std::list<SectorWheel::Sector>
   {
     SectorWheel sectorWheel;
@@ -155,7 +158,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return sectorWheel.finish();
   };
 
-  // Calculates the angle inside a range that is closest in the (counter)clockwise direction. If the angle range is too small, its center is used.
+  // Calculates the angle inside a range that is closest in the (counter)clockwise direction. If the angle range is too small, its center is used.在给定的角度范围内，根据指定的方向（顺时针或逆时针）计算最接近的角度。如果角度范围太小，则使用其中心角度。
   const auto getNextAngleInRange = [&](const Rangea angleRange, const bool ccw, const Angle& modifiedMinAngleOffset) -> Angle
   {
     const Angle halfSizeOfRange = angleRange.getSize() / 2.f;
@@ -165,7 +168,7 @@ option((SkillBehaviorControl) PassToTeammate,
     angleRange.max - angleOffset;
   };
 
-  // Sets the target angle, when it is valid (i.e. within the given parameters).
+  // Sets the target angle, when it is valid (i.e. within the given parameters).设置目标角度和精度范围
   const auto setAnglePrecisionRange = [&](Angle& targetAngle, Rangea& precisionRange, const Angle currentAngle, const Angle maxAngleDeviation, const Rangea& angleRange) -> bool
   {
     /** No final kick angle will be set, when one of the following conditions is met:
@@ -197,7 +200,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return true;
   };
 
-  // Sets the closest target angle and precision range by reference, if a free angle (i.e. not blocked by obstacles) could be found in the sector wheel with the given parameters.
+  // Sets the closest target angle and precision range by reference, if a free angle (i.e. not blocked by obstacles) could be found in the sector wheel with the given parameters.在给定的扇形区域列表中，按照指定的方向（顺时针或逆时针）查找第一个可用的自由角度，并设置目标角度和精度范围。
   const auto findNextFreeAngle = [&](const std::list<SectorWheel::Sector>& sectors, Angle& targetAngle, Rangea& precisionRange, const bool ccw, const Angle maxAngleDeviation, const Angle& modifiedMinAngleOffset) -> bool
   {
     for(auto it = sectors.begin(); it != sectors.end(); ++it)
@@ -243,7 +246,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return false;
   };
 
-  // Calculates the rating for a target position based on the rating functions for passing and shooting at the opponent's goal.
+  // Calculates the rating for a target position based on the rating functions for passing and shooting at the opponent's goal.根据传球和射门的评级函数，计算目标位置的评级
   const auto getAngleRating = [&](const Angle candidateAngle, const bool isIdealSide, const Vector2f basePosition, const Angle targetAngle, const float targetDistance) -> float
   {
     const Vector2f targetPosition = basePosition + Vector2f::polar(targetDistance, candidateAngle);
@@ -265,7 +268,14 @@ option((SkillBehaviorControl) PassToTeammate,
     return combinedRating;
   };
 
-  // Calculates a kick target as close to the teammate's position as possible while reducing the likelihood of obstacles blocking the ball on the way. Requires the teammate pointer to be non-null.
+  // Calculates a kick target as close to the teammate's position as possible while reducing the likelihood of obstacles blocking the ball on the way. Requires the teammate pointer to be non-null.计算尽可能接近队友位置的踢球目标，同时减少传球路线上被障碍物阻挡的可能性
+
+    // 获取球在球场上的位置，并计算对手的角度扇形区域。
+    // 如果启用了提前预测，预测传球所需时间，并根据此时间更新队友的位置。
+    // 判断球应从队友的左侧还是右侧传球，计算目标位置和目标角度。
+    // 检查初始目标角度是否可用，如果不可用，尝试在两个方向上找到可用的自由角度，并根据评级选择最佳角度。
+    // 返回最终的目标位置。
+
   const auto calculateTeammateAngle = [&]() -> Vector2f
   {
     const Vector2f& ballPositionOnField = theFieldInterceptBall.interceptedEndPositionOnField;
@@ -329,7 +339,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return Vector2f::polar(targetDistance, targetAngle);
   };
 
-  // Calculates the rating thresholds of the target position for the decision to wait behind the ball or kick it.
+  // Calculates the rating thresholds of the target position for the decision to wait behind the ball or kick it.计算目标位置的评级阈值，用于决定是在球后方等待还是踢球。
   const auto updateTargetRating = [&]
   {
     float interpolatedRatingThreshold = ratingThreshold;
@@ -344,12 +354,19 @@ option((SkillBehaviorControl) PassToTeammate,
     }
     isTargetFree = thePassEvaluation.getRating(theFieldBall.recentBallPositionOnField(), kickTarget, false) > std::max(interpolatedRatingThreshold, minRating);
   };
-
+  // 更新踢球参数，包括踢球角度和踢球长度。
   const auto updateKickParameters = [&]
+   
   {
     kickAngle = Angle::normalize((kickTarget - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation);
     kickLength = (kickTarget - theFieldInterceptBall.interceptedEndPositionOnField).norm();
   };
+  // 更新踢球目标，并更新目标评级和踢球参数。
+
+    // 获取球在球场上的位置。
+    // 如果有队友，计算队友的目标角度并更新踢球目标；否则将踢球目标设为对手球门。
+    // 确保踢球目标在球场边界内。
+    // 更新目标评级和踢球参数。
 
   const auto updateKickTarget = [&]
   {
@@ -360,7 +377,7 @@ option((SkillBehaviorControl) PassToTeammate,
     updateKickParameters();
   };
 
-  // Estimate whether or not the receiver is close enough to the kick target to intercept the ball in time (usually by walking sidewards).
+  // Estimate whether or not the receiver is close enough to the kick target to intercept the ball in time (usually by walking sidewards).估计队友是否能够及时截获传球。
   const auto canTeammateInterceptBall = [&]() -> bool
   {
     const Vector2f& ballPosition = theFieldInterceptBall.interceptedEndPositionOnField;
@@ -371,7 +388,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return interceptionDistance <= maxDistanceThreshold;
   };
 
-  // Filters the allowed kicks based on the current situation to improve the overall accuracy of passing.
+  // Filters the allowed kicks based on the current situation to improve the overall accuracy of passing.根据当前情况过滤允许的踢球类型，以提高传球的整体准确性
   const auto calcAvailableKicks = [&]() -> std::vector<KickInfo::KickType>
   {
     std::vector<KickInfo::KickType> kicks;
@@ -447,7 +464,7 @@ option((SkillBehaviorControl) PassToTeammate,
     return kicks;
   };
 
-  // Selects the kick type that would move the ball most quickly and accurately to the pass target based on the kick's range and the time to reach its required pose behind the ball.
+  // Selects the kick type that would move the ball most quickly and accurately to the pass target based on the kick's range and the time to reach its required pose behind the ball.根据踢球的范围和到达球后方所需姿势的时间，选择能最快、最准确地将球踢到传球目标的踢球类型
   const auto selectKickType = [&]() -> KickInfo::KickType
   {
     KickInfo::KickType bestKick = KickInfo::numOfKickTypes;
@@ -521,13 +538,13 @@ option((SkillBehaviorControl) PassToTeammate,
     }
   };
 
-  setTeammate();
+  setTeammate();// 调用 setTeammate 函数设置要传球的队友。
   if(!keepLastKickTarget())
-    reset();
+    reset();// 如果不保留上一帧的踢球目标，调用 reset 函数重置相关变量。
 
   common_transition
   {
-    // In regular playing, always kick the ball immediately (without waiting).
+    // In regular playing, always kick the ball immediately (without waiting).如果不是任意球或开球状态，有队友则进入 kick 状态，没有队友则进入 abort 状态。
     if(!isFreeKick() && !isKickOff())
     {
       if(teammate)
@@ -535,7 +552,7 @@ option((SkillBehaviorControl) PassToTeammate,
       else
         goto abort;
     }
-    // When a free kick started this frame, reset member variables and take the transitions from the initial state.
+    // When a free kick started this frame, reset member variables and take the transitions from the initial state.如果游戏状态发生变化，重置相关变量，根据是否有足够时间等待决定进入 walk 或 adjust 状态。
     if(theGameState.state != theExtendedGameState.stateLastFrame)
     {
       reset();
@@ -546,7 +563,7 @@ option((SkillBehaviorControl) PassToTeammate,
     }
   }
 
-  // When the skill started this frame, reset member variables and decide whether to wait or adjust before executing the kick.
+  // When the skill started this frame, reset member variables and decide whether to wait or adjust before executing the kick.根据是否有足够时间等待决定进入 walk 或 adjust 状态。
   initial_state(initial)
   {
     transition
@@ -575,7 +592,7 @@ option((SkillBehaviorControl) PassToTeammate,
     {
       LookActive({.withBall = true});
 
-      // Calculate the kick target and kick type in the first frame of this state and when the passed-to player changed.
+      // Calculate the kick target and kick type in the first frame of this state and when the passed-to player changed.更新踢球目标并选择最佳踢球类型。
       if(state_time == 0 || !keepLastKickTarget())
       {
         updateKickTarget();
@@ -589,11 +606,11 @@ option((SkillBehaviorControl) PassToTeammate,
                    .reduceWalkingSpeed = targetPose.translation.squaredNorm() > sqr(distanceForNormalWalk) ? ReduceWalkSpeedType::noChange : ReduceWalkSpeedType::normal,
                    .rough = targetPose.translation.squaredNorm() <= sqr(ignoreObstaclesThreshold),
                    .disableObstacleAvoidance = targetPose.translation.squaredNorm() <= sqr(ignoreDynamicObstaclesThreshold),
-                   .disableAvoidFieldBorder = true});
+                   .disableAvoidFieldBorder = true});//计算等待位置的目标位姿，调用 WalkToPoint 函数走到该位置。
     }
   }
 
-  // Stand at the waiting position behind the ball as long as there's is still enough time left and the pass situation could improve.
+  // Stand at the waiting position behind the ball as long as there's is still enough time left and the pass situation could improve.更新目标评级，根据等待时间和传球可用性的变化决定是否进入 adjust 状态。
   state(wait)
   {
     transition
@@ -626,7 +643,7 @@ option((SkillBehaviorControl) PassToTeammate,
     }
   }
 
-  // Calculate the kick target once, adjust to the new waiting position and keep walking, then execute the kick, if the teammate is available for a pass.
+  // Calculate the kick target once, adjust to the new waiting position and keep walking, then execute the kick, if the teammate is available for a pass.踢球角度不可用或没有队友，进入 abort 状态；否则进入 kick 状态。
   state(adjust)
   {
     transition
@@ -709,9 +726,9 @@ option((SkillBehaviorControl) PassToTeammate,
                        .turnKickAllowed = turnKickAllowed,
                        .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(ballDistanceForSlowWalk) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange,
                        .directionPrecision = precisionRange});
-      if(theFieldInterceptBall.interceptedEndPositionRelative.squaredNorm() < sqr(maxDistanceToCommunicatePass + (isCommunicatingPass ? maxDistanceToCommunicatePassHysteresis : 0.f)))
+      if(theFieldInterceptBall.interceptedEndPositionRelative.squaredNorm() < sqr(maxDistanceToCommunicatePass + (isCommunicatingPass ? maxDistanceToCommunicatePassHysteresis : 0.f)))// 根据球的位置决定是否进行传球通信。
       {
-        isCommunicatingPass = true;
+        isCommunicatingPass = true;// 比较近的时候通信？
         PassTarget({.passTarget = playerNumber,
                     .ballTarget = theRobotPose.inverse() * kickTarget});
       }
@@ -721,7 +738,7 @@ option((SkillBehaviorControl) PassToTeammate,
     }
   }
 
-  aborted_state(abort)
+  aborted_state(abort)// 如果是自己队伍的任意球且有可用的清球踢球类型，调用 ClearBall 函数清球。否则，调用 DribbleToGoal 函数带球到球门。
   {
     action
     {
