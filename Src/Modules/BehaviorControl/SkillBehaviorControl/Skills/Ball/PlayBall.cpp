@@ -156,7 +156,34 @@ option((SkillBehaviorControl) PlayBall,
     }
     action
     {
-      DirectKickOff();
+      //DirectKickOff();
+      const auto seekTeammate = [&](int athlete)
+      {
+        for(const auto& t : theGlobalTeammatesModel.teammates)
+        {
+          if(t.playerNumber == athlete)
+          {
+            return true;
+          }
+        }
+        return false;
+      };
+      if(seekTeammate(4))
+      {
+        GoToBallAndKick({.targetDirection = Angle::normalize((Vector2f(-750, -750/2 - 750) - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation),
+          .alignPrecisely = KickPrecision::notPrecise,
+          .length = (Vector2f(-750, -750/2 - 750) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
+          .turnKickAllowed = false,
+          .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange,});
+      }
+      else
+      {
+        GoToBallAndKick({.targetDirection = Angle::normalize((Vector2f(-750, 750/2 + 750) - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation),
+          .alignPrecisely = KickPrecision::notPrecise,
+          .length = (Vector2f(-750, 750/2 + 750) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
+          .turnKickAllowed = false,
+          .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange,});
+      }
     }
   }
 }
