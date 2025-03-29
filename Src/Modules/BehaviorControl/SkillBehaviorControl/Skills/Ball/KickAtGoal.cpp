@@ -119,12 +119,13 @@ option((SkillBehaviorControl) KickAtGoal,
     auto kicks = calcAvailableKicks(lastKickType);
     if(kicks.empty())
     {
-      aimingAtGoal = false;
-      return;
+      kicks.push_back(KickInfo::KickInfo::forwardFastLeftLong);
+      kicks.push_back(KickInfo::KickInfo::forwardFastRightLong);
+
     }
 
-    if(theFieldInterceptBall.interceptedEndPositionOnField.x() > theFieldDimensions.xPosOpponentGoalPost - minBallGoalPostOffset - (lastAimingAtGoal ? hysteresisNumber : 0.f) &&
-       std::abs(theFieldInterceptBall.interceptedEndPositionOnField.y()) < theFieldDimensions.yPosLeftGoal - minBallGoalPostOffset - (lastAimingAtGoal ? 0.f : hysteresisNumber))
+    if(theFieldInterceptBall.interceptedEndPositionOnField.x() > theFieldDimensions.xPosOpponentGoalArea - minBallGoalPostOffset - (lastAimingAtGoal ? hysteresisNumber : 0.f) &&
+       std::abs(theFieldInterceptBall.interceptedEndPositionOnField.y()) < theFieldDimensions.yPosLeftGoalArea - minBallGoalPostOffset - (lastAimingAtGoal ? 0.f : hysteresisNumber))
     {
       KickInfo::KickType bestKickType = KickInfo::numOfKickTypes;
       Pose2f bestKickPoseRelative;
@@ -172,8 +173,13 @@ option((SkillBehaviorControl) KickAtGoal,
 
       // Prepare obstacle sectors.
       std::vector<ObstacleSector> obstacleSectors;
+      int obstacle_limitation;
       for(const Obstacle& obstacle : theObstacleModel.obstacles)
       {
+        if (obstacle_limitation>=5)
+        {
+          break;
+        }
         const Vector2f obstacleOnField = theRobotPose * obstacle.center;
         if(obstacleOnField.x() > (theFieldDimensions.xPosOpponentGoalLine + theFieldDimensions.xPosOpponentGoal) * 0.5f)
           continue;
@@ -189,6 +195,7 @@ option((SkillBehaviorControl) KickAtGoal,
         // This works unnormalized because |angleToLeftPost| and |angleToRightPost| are <= pi_2 and radius <= pi_2
         if(direction - radius > angleToLeftPost || direction + radius < angleToRightPost)
           continue;
+        obstacle_limitation++;
         obstacleSectors.emplace_back();
         obstacleSectors.back().sector = Rangea(Angle::normalize(direction - radius), Angle::normalize(direction + radius));
         obstacleSectors.back().distance = distance;
@@ -210,8 +217,13 @@ option((SkillBehaviorControl) KickAtGoal,
       SectorWheel wheel;
       std::list<SectorWheel::Sector> sectors;
       bool isLargeEnough = false;
+      int count_limitation = 0;
       do
       {
+        if (count_limitation >= 3)
+        {
+          break;
+        }
         wheel.begin(theFieldInterceptBall.interceptedEndPositionOnField);
         wheel.addSector(Rangea(angleToRightPost, angleToLeftPost), std::numeric_limits<float>::max(), SectorWheel::Sector::goal);
         for(const ObstacleSector& obstacleSector : obstacleSectors)
@@ -225,6 +237,7 @@ option((SkillBehaviorControl) KickAtGoal,
             isLargeEnough = true;
             break;
           }
+        count_limitation++;
       }
       while(!isLargeEnough && !obstacleSectors.empty() && obstacleSectors.back().x > cullBeyondX && (obstacleSectors.pop_back(), true));
 
