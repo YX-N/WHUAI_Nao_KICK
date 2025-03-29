@@ -352,7 +352,10 @@ void SkillBehaviorControl::executeRequest()
         {
           WalkToPointObstacle({.target = theRobotPose.inverse() * theSkillRequest.target,
                                .rough = theGameState.isGoalkeeper(),
-                               .disableObstacleAvoidance = theGameState.isGoalkeeper()}); // TODO: set the right parameters
+                               .disableObstacleAvoidance = theGameState.isGoalkeeper(),
+                               //增加变量，防止守门员回去的时候背着走
+                                .disableAligning = theGameState.isGoalkeeper(),
+                                .forceSideWalking = theGameState.isGoalkeeper()}); // TODO: set the right parameters
           LookActive();
         }
         break;
