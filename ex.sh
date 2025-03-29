@@ -2,11 +2,12 @@
 
 
 echo "press number key to choice"
-echo "-------------1.load calibration------------"
-echo "-------------2.save calibration------------"
-echo "-------------3.download calibration--------"
 
-echo "after calibration，1 2 3"
+echo "-------------1.save load calibration-------"
+echo "-------------2.download calibration--------"
+
+echo "Tips1: After calibration，press 1(need robot number and the field number),there will be folder named'calibration' in the ROOT"
+echo "Tips2: Before calibration,press 2(need the field number),then all robots'calibration data will update"
 
 declare -A number_to_word=(
     [0]="zero"
@@ -33,15 +34,14 @@ declare -A number_to_word=(
 )
 
 read -p "Enter a number: " number
-if [ $number -eq 1 ]; then
-read -p "Enter robot number: " robotnumber
-robotnumber=$((robotnumber + 100))
-./Make/Common/downloadCalibration 10.0.64.$robotnumber
+
             
-elif [ $number -eq 2 ];then
+if [ $number -eq 1 ];then
 read -p "Enter robot number(0-20): " robotnumber
 read -p "Enter field number(A/B): " fieldnumber
 robotnumber_word=${number_to_word[$robotnumber]}
+robotnumber=$((robotnumber + 100))
+./Make/Common/downloadCalibration 10.0.64.$robotnumber
 source_dir="./Config/Robots/$robotnumber_word"
 target_dir="./calibration/$fieldnumber"
 if [ ! -d "$source_dir" ]; then
@@ -55,7 +55,7 @@ fi
 cp -r "$source_dir" "$target_dir"
 echo "Directory $source_dir has been copied to $target_dir"
 
-elif [ $number -eq 3 ]; then
+elif [ $number -eq 2 ]; then
 read -p "Enter field number(A/B): " fieldnumber
 source_dir="./calibration/$fieldnumber"
 target_dir="./Config/Robots"
