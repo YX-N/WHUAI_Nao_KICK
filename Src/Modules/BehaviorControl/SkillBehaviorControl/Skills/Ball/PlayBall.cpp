@@ -174,7 +174,7 @@ option((SkillBehaviorControl) PlayBall,
           .alignPrecisely = KickPrecision::notPrecise,
           .length = (Vector2f(-750, -750/2 - 750) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
           .turnKickAllowed = false,
-          .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange,});
+          .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange});
       }
       else
       {
@@ -182,7 +182,7 @@ option((SkillBehaviorControl) PlayBall,
           .alignPrecisely = KickPrecision::notPrecise,
           .length = (Vector2f(-750, 750/2 + 750) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
           .turnKickAllowed = false,
-          .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange,});
+          .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange});
       }
     }
   }
