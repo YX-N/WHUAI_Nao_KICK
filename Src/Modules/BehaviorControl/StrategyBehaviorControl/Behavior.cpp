@@ -1042,6 +1042,29 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     if(!isSharedAutonomyChallenge && Tactic::Position::isGoalkeeper(agent.position) && isOwnGoalKick)
       ttrb += ttrbGoalkeeperGoalKickPenalty;
 
+    if (Tactic::Position::isGoalkeeper(agent.position))
+    {
+      // 检查是否有队友能够处理球
+      bool canTeammateHandleBall = false;
+      for (const Agent* otherAgent : otherAgents)
+      {
+        if (!Tactic::Position::isGoalkeeper(otherAgent->position))
+        {
+          // 计算队友的 TTRB
+          float teammateTTRB = KickSelection::calcTTRP(otherAgent->pose.inverse() * getReferencePoseOnField(ballOnField), ttrbWalkSpeed);
+          if (teammateTTRB < ttrb) // 如果队友能更快到达球的位置
+          {
+            canTeammateHandleBall = true;
+            break;
+          }
+        }
+      }
+
+      // 如果有队友能够处理球，显著增加守门员的 TTRB
+      if (canTeammateHandleBall)
+        ttrb += 1000.f; // 增加一个很大的值，确保守门员不会被选中
+    }
+
     return ttrb;
   };
 
@@ -1057,11 +1080,19 @@ const Agent* Behavior::determineActiveAgent(Agent& self, const std::vector<const
     if(agent.disagreeOnBall)
       return false;
     // For the goalkeeper to go to the ball, the ball must be in a specific area.
-    if(!isSharedAutonomyChallenge && ((agent.position == Tactic::Position::goalkeeper && !wasActive) || (Tactic::Position::isGoalkeeper(agent.position) && theGameState.isFreeKick())))
+
+
+
+
+    //if(!isSharedAutonomyChallenge && ((agent.position == Tactic::Position::goalkeeper && !wasActive) || (Tactic::Position::isGoalkeeper(agent.position) && theGameState.isFreeKick())))
+    if(!isSharedAutonomyChallenge && (Tactic::Position::isGoalkeeper(agent.position) && (theGameState.isFreeKick() || wasActive)))
     {
       if(!ballWasSeen && ((ballNeeded && !wasActive) || !theTeammatesBallModel.isValid))
         return false;
-      if(!ballInGoalkeeperArea(ballNeeded ? agent.pose* agent.ballPosition : theTeammatesBallModel.position, wasActive))
+      const Vector2f& currentBallPos = (ballNeeded || wasActive) ? agent.pose * agent.ballPosition : theTeammatesBallModel.position;
+      if(!ballInGoalkeeperArea(currentBallPos, wasActive))
+
+        //if(!ballInGoalkeeperArea(ballNeeded ? agent.pose* agent.ballPosition : theTeammatesBallModel.position, wasActive))
         return false;
     }
     if(!wasActive)
