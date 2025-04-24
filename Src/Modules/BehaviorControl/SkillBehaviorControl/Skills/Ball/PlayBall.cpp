@@ -170,14 +170,21 @@ option((SkillBehaviorControl) PlayBall,
       };
       if(seekTeammate(4))
       {
-        GoToBallAndKick({.targetDirection = Angle::normalize((Vector2f(-750, -750/2 - 750) - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation),
+        PassTarget({.passTarget = 4,
+          .ballTarget = theRobotPose.inverse() * Vector2f(-1200, 0)});
+
+        GoToBallAndKick({.targetDirection = Angle::normalize((Vector2f(-1200, 0) - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation),
           .alignPrecisely = KickPrecision::notPrecise,
-          .length = (Vector2f(-750, -750/2 - 750) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
+          .length = (Vector2f(-1200, 0) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
           .turnKickAllowed = false,
           .reduceWalkSpeedType = theGameState.isFreeKick() && theFieldBall.positionRelative.squaredNorm() < sqr(500) ? ReduceWalkSpeedType::slow : ReduceWalkSpeedType::noChange});
+        
       }
       else
       {
+        PassTarget({.passTarget = 3,
+          .ballTarget = theRobotPose.inverse() * Vector2f(-750, 750/2 + 750)});
+
         GoToBallAndKick({.targetDirection = Angle::normalize((Vector2f(-750, 750/2 + 750) - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation),
           .alignPrecisely = KickPrecision::notPrecise,
           .length = (Vector2f(-750, 750/2 + 750) - theFieldInterceptBall.interceptedEndPositionOnField).norm(),
