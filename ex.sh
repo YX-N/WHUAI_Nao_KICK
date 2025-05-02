@@ -41,7 +41,7 @@ read -p "Enter robot number(0-20): " robotnumber
 read -p "Enter field number(A/B): " fieldnumber
 robotnumber_word=${number_to_word[$robotnumber]}
 robotnumber=$((robotnumber + 100))
-./Make/Common/downloadCalibration 10.0.64.$robotnumber
+./Make/Common/downloadCalibration 192.168.64.$robotnumber
 source_dir="./Config/Robots/$robotnumber_word"
 target_dir="./calibration/$fieldnumber"
 if [ ! -d "$source_dir" ]; then

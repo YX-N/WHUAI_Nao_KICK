@@ -168,9 +168,9 @@ option((SkillBehaviorControl) PlayBall,
         }
         return false;
       };
-      if(seekTeammate(4))
+      if(seekTeammate(5))
       {
-        PassTarget({.passTarget = 4,
+        PassTarget({.passTarget = 5,
           .ballTarget = theRobotPose.inverse() * Vector2f(-1200, 0)});
 
         GoToBallAndKick({.targetDirection = Angle::normalize((Vector2f(-1200, 0) - theFieldInterceptBall.interceptedEndPositionOnField).angle() - theRobotPose.rotation),
