@@ -49,7 +49,7 @@ void InitialToReadyHandler::update(InitialToReady& theInitialToReady)
   if(pawnsLeft > 0 && theInitialToReady.state == InitialToReady::State::observing)
   {
     int detectByMate = Settings::lowestValidPlayerNumber - 1;
-    bool forceTransition = true;
+    bool forceTransition = false;
     DEBUG_RESPONSE_ONCE("module:InitialToReadyHandler:initiateTransition")
       forceTransition = true;
     if((theRefereePercept.gesture == RefereePercept::Gesture::initialToReady && refereeInSight()) ||
@@ -88,10 +88,10 @@ void InitialToReadyHandler::update(InitialToReady& theInitialToReady)
         pawnsLeft--;
         if(theGameState.playerNumber == pawn)
         {
-          if(theFrameInfo.getTimeSince(theInitialToReady.timestamp) > 6000)
-          {theInitialToReady.state = InitialToReady::State::transition;
+          //if(theFrameInfo.getTimeSince(theInitialToReady.timestamp) > 6000)
+          theInitialToReady.state = InitialToReady::State::transition;
           //theInitialToReady.state = InitialToReady::State::delay;
-          theInitialToReady.isPawn = true;}
+          theInitialToReady.isPawn = true;
         }
         else
         {
@@ -161,7 +161,7 @@ bool InitialToReadyHandler::refereeInSight()
 
 bool InitialToReadyHandler::setNextPawn(int& pawn)
 {
-  /*pawn = Settings::lowestValidPlayerNumber - 1;
+  pawn = Settings::lowestValidPlayerNumber - 1;
 
   int firstOnOtherSideIndex;
   if(getIndexOfRobotOnOtherSide(firstOnOtherSideIndex))
@@ -194,11 +194,12 @@ bool InitialToReadyHandler::setNextPawn(int& pawn)
           prevPlayerNumber = theSetupPoses.poses[i].playerNumber;
       }
     }
-  }*/
-  static constexpr int k = 1;
+  }
+  /*static constexpr int k = 1;
   pawn = k;
 
-  return true;
+  return true;*/
+  return pawn >= Settings::lowestValidPlayerNumber;
 }
 
 bool InitialToReadyHandler::isPawnPenalized(const int playerNumber) const

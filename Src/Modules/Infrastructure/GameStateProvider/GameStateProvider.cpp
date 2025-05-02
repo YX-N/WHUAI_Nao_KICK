@@ -287,7 +287,8 @@ void GameStateProvider::update(GameState& gameState)
   }
 
   // Transition from Initial to Ready
-  if(gameState.state == GameState::standby && theInitialToReady.isTransition())
+  if(gameState.state == GameState::standby && /*theGameControllerData.state == STATE_READY)*/
+     theInitialToReady.isTransition())
   {
     const bool isKickingTeam = theGameControllerData.kickingTeam == Global::getSettings().teamNumber;
     gameState.state = isKickingTeam ? GameState::setupOwnKickOff : GameState::setupOpponentKickOff;
