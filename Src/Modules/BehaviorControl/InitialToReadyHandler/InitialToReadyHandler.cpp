@@ -119,12 +119,12 @@ void InitialToReadyHandler::update(InitialToReady& theInitialToReady)
   {
     if(isPawnPenalized(observedPawn))
       theInitialToReady.state = InitialToReady::State::observing;
-    else if(theFrameInfo.getTimeSince(theInitialToReady.timestamp) > waitForPawnSacrifice)
-    {
+    //else if(theFrameInfo.getTimeSince(theInitialToReady.timestamp) > waitForPawnSacrifice)
+    //{
       theInitialToReady.state = InitialToReady::State::transition;
       if(enableSound)
         SystemCall::playSound("wyld.wav");
-    }
+    //}
   }
 }
 
