@@ -15,7 +15,7 @@ namespace KickLengthConverter
 
   std::vector<KickLengthPair> getKickLengthPairList()
   {
-    return { { 0.f, 0.2f }, { 0.5f, 0.5f }, { 1.f, 1.f } };
+    return { { 0.f, 0.2f }, { 0.5f, 0.5f }, { 1.f, 1.f }, {1.1f, 1.2f} };
   }
 
   float kickLengthToPower(const KickInfo::KickType kickType, const float length, const Angle direction, const KickInfo& theKickInfo)
