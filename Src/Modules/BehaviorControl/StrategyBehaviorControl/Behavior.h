@@ -19,16 +19,16 @@
 #include "Tools/BehaviorControl/Strategy/Tactic.h"
 #include "Math/Eigen.h"
 #include "Framework/Settings.h"
+#include "Representations/BehaviorControl/BallSearchParticles.h"
 #include "Representations/BehaviorControl/FieldBall.h"
 #include "Representations/BehaviorControl/FieldInterceptBall.h"
-#include "Representations/BehaviorControl/IndirectKick.h"
-#include "Representations/BehaviorControl/OpposingKickoff.h"
 #include "Representations/BehaviorControl/SkillRequest.h"
+#include "Representations/BehaviorControl/Libraries/LibDemo.h"
 #include "Representations/Configuration/FieldDimensions.h"
 #include "Representations/Infrastructure/FrameInfo.h"
 #include "Representations/Infrastructure/GameState.h"
 #include "Representations/Modeling/BallDropInModel.h"
-#include "Representations/Modeling/TeammatesBallModel.h"
+#include "Representations/Modeling/TeamBallModel.h"
 #include <array>
 #include <vector>
 
@@ -38,12 +38,11 @@ class Behavior final
 {
 public:
   /** Constructor. */
-  Behavior(const BallDropInModel& theBallDropInModel, const BallSpecification& theBallSpecification,
-           const ExtendedGameState& theExtendedGameState, const FieldBall& theFieldBall,
-           const FieldDimensions& theFieldDimensions, const FieldInterceptBall& theFieldInterceptBall,
-           const FrameInfo& theFrameInfo, const GameState& theGameState,
-           const IndirectKick& theIndirectKick, const OpposingKickoff& theOpposingKickoff,
-           const TeammatesBallModel& theTeammatesBallModel);
+  Behavior(const BallDropInModel& theBallDropInModel, const BallSearchParticles& theBallSearchParticles,
+           const BallSpecification& theBallSpecification, const ExtendedGameState& theExtendedGameState,
+           const FieldBall& theFieldBall, const FieldDimensions& theFieldDimensions,
+           const FieldInterceptBall& theFieldInterceptBall, const FrameInfo& theFrameInfo,
+           const GameState& theGameState, const TeamBallModel& theTeamBallModel, const LibDemo& theLibDemo);
 
   /** Destructor. */
   ~Behavior();
@@ -55,7 +54,7 @@ public:
   void postProcess();
 
   /**
-   * Executes the whole thing.执行整个过程
+   * Executes the whole thing.
    * @param strategy The strategy that is being played.
    * @param self The agent that executes this function.
    * @param agents All agents in the team (including \c self).
@@ -65,7 +64,7 @@ public:
 
 private:
   /**
-   * Assign positions to all agents.为所有代理分配位置
+   * Assign positions to all agents.
    * @param tactic The current tactic.
    * @param setPlay The current set play.
    * @param agents The agents that should get a position (every agent will have \c position and \c basePose set).
@@ -76,15 +75,15 @@ private:
   void assignPositions(Tactic::Type tactic, SetPlay::Type setPlay, std::vector<Agent>& agents, bool dontChangePositions, bool& proposedMirror, bool& acceptedMirror) const;
 
   /**
-   * Assign roles to all agents.为所有代理分配角色
+   * Assign roles to all agents.
    * @param agents The agents that should get a role (every agent will have \c role set).
-   * @param self The agent that executeds this function.
+   * @param self The agent that executes this function.
    * @param otherAgents All other agents (excluding \c agent).
    */
   void assignRoles(std::vector<Agent>& agents, Agent& self, const std::vector<const Agent*>& otherAgents) const;
 
   /**
-   * Executes the selected role for an agent.为该代理执行所选角色
+   * Executes the selected role for an agent.
    * @param agent The agent for which to do the calculations.
    * @param otherAgents All other agents (excluding \c agent).
    * @return The resulting skill request.
@@ -92,7 +91,7 @@ private:
   SkillRequest execute(const Agent& agent, const Agents& otherAgents);
 
   /**
-   * Selects a set play.选择一种战术（shoot，pass，wait，mark，position）
+   * Selects a set play.
    * @tparam SetPlayType The type of set play that must be chosen from.
    * @param agents The list of agents.
    * @param setPlays The set of set plays of the given type.
@@ -123,7 +122,7 @@ private:
   static std::vector<float> getAssignmentCost(const Eigen::MatrixXf& costMatrix, const std::vector<std::size_t>& positionIndices);
 
   /**
-   * Determines the agent which should have an active role.（activerole只有进攻）
+   * Determines the agent which should have an active role.
    * @param self The agent that executes this function.
    * @param agents All other agents (excluding \c self).
    * @param assign Whether \c nextRole should be set.
@@ -158,12 +157,15 @@ private:
   static constexpr float ttrbGetUpDuration = 5000.f; /**< Assumed get up duration for TTRB [ms]. */
   static constexpr float ttrbStabilityOffset = 1000.f; /**< A bonus that the current active agent gets in its TTRB to prevent unnecessary role switches [ms]. */
   static constexpr float ttrbGoalkeeperGoalKickPenalty = 20000.f; /**< A penalty for the goalkeeper's TTRB when a goal kick (for the own team) is going on [ms]. */
-  static constexpr float ttrbWithoutBallPenalty = 2000.f; /**< An penalty for the TTRB when assigning the closestToTeammatesBall role [ms]. */
+  static constexpr float ttrbWithoutBallPenalty = 2000.f; /**< An penalty for the TTRB when assigning the closestToTeamBall role [ms]. */
   static constexpr float kickPoseBallOffsetX = 170.f; /**< The offset of the (fake) kick pose behind the ball for calculating the TTRB [mm]. */
   static constexpr int ballDisappearedThreshold = 64; /**< If the ball has disappeared longer than this [ms], an agent can not become active and its TTRB is increased. */
   static constexpr int ballSeenThreshold = 1000; /**< If the ball is older than this [ms], an agent can not become active (it can stay active, though, if it already was). */
   static constexpr int ballLostThreshold = 5000; /**< If the ball is older than this [ms], an agent can not be active (even if it was). */
+  static constexpr float ballDistanceThresholdDemo = 800.f; /**< The distance threshold for the ball to be considered for the demo [mm]. */
+  static constexpr float oscillationBuffer = 200.f /**< The buffer for oscillation [mm]. */;
   static constexpr int yetAnotherBallThreshold = 8000; /**< No comment. */
+  static constexpr int kickOffForwardDuration = 10000; /**< The time forwards will walk into the opposing half after kick to a specific position [ms]. */
 
   std::array<Strategy, Strategy::numOfTypes> strategies;
   std::array<Tactic, Tactic::numOfTypes> tactics;
@@ -185,6 +187,7 @@ private:
   std::unordered_map<float, BallXTimestamps> ballXTimestamps;
 
   const BallDropInModel& theBallDropInModel;
+  const BallSearchParticles& theBallSearchParticles;
   const BallSpecification& theBallSpecification;
   const ExtendedGameState& theExtendedGameState;
   const FieldBall& theFieldBall;
@@ -192,7 +195,6 @@ private:
   const FieldInterceptBall& theFieldInterceptBall;
   const FrameInfo& theFrameInfo;
   const GameState& theGameState;
-  const IndirectKick& theIndirectKick;
-  const OpposingKickoff& theOpposingKickoff;
-  const TeammatesBallModel& theTeammatesBallModel;
+  const TeamBallModel& theTeamBallModel;
+  const LibDemo& theLibDemo;
 };

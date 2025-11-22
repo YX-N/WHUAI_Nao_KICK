@@ -16,6 +16,7 @@
 #include "Platform/File.h"
 #include "Platform/Time.h"
 #include "Framework/Settings.h"
+#include "TestUtils.h"
 
 #include <QApplication>
 
@@ -30,6 +31,7 @@ RoboCupCtrl* RoboCupCtrl::controller = nullptr;
 SimRobot::Application* RoboCupCtrl::application = nullptr;
 
 RoboCupCtrl::RoboCupCtrl(SimRobot::Application& application)
+  : gameController()
 {
   Thread::nameCurrentThread("Main");
 
@@ -40,12 +42,12 @@ RoboCupCtrl::RoboCupCtrl(SimRobot::Application& application)
 
 bool RoboCupCtrl::compile()
 {
-  static_assert(static_cast<int>(SimRobotCore2::scene) != static_cast<int>(SimRobotCore2D::scene),
+  static_assert(static_cast<int>(SimRobotCore3::scene) != static_cast<int>(SimRobotCore2D::scene),
                 "The kinds 'scene' must be different to distinguish between simulation cores.");
 
   // find simulation object
   SimRobotCore2D::Scene* scene2D = nullptr;
-  SimRobotCore2::Scene* scene = static_cast<SimRobotCore2::Scene*>(application->resolveObject("RoboCup", SimRobotCore2::scene));
+  SimRobotCore3::Scene* scene = static_cast<SimRobotCore3::Scene*>(application->resolveObject("RoboCup", SimRobotCore3::scene));
   if(!scene)
   {
     scene2D = static_cast<SimRobotCore2D::Scene*>(application->resolveObject("RoboCup", SimRobotCore2D::scene));
@@ -65,9 +67,17 @@ bool RoboCupCtrl::compile()
   simStepLength = static_cast<float>(is2D ? scene2D->getStepLength() : scene->getStepLength()) * 1000.f;
   delayTime = simStepLength;
 
+  // Load test state if available
+  std::string scenePath = application->getFilePath().toStdString();
+  gameController.setTestDirPath(TestUtils::generateTestDirPath(scenePath));
+  if(application->isSimResetting())
+  {
+    gameController.loadTest();
+  }
+
   // Get colors of first and second team
   std::array<GameController::TeamInfo, 2> teamInfos{{{5, Settings::TeamColor::black, Settings::TeamColor::purple}, {70, Settings::TeamColor::red, Settings::TeamColor::blue}}};
-  SimRobot::Object* teamInfosObject = application->resolveObject("RoboCup.teams", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore2::compound));
+  SimRobot::Object* teamInfosObject = application->resolveObject("RoboCup.teams", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore3::compound));
   if(teamInfosObject)
   {
     ASSERT(application->getObjectChildCount(*teamInfosObject) == 2);
@@ -95,16 +105,28 @@ bool RoboCupCtrl::compile()
         ASSERT(color != -1);
         return static_cast<Settings::TeamColor>(color);
       };
-
       teamInfos[i].number = parseTeamNumber(getChildName(0));
       teamInfos[i].fieldPlayerColor = parseTeamColor(getChildName(1));
       teamInfos[i].goalkeeperColor = parseTeamColor(getChildName(2));
     }
   }
+
+  if(gameController.isTestActive())
+  {
+    auto teamNumbers = gameController.getTestParameters().teamNumbers;
+    if(teamNumbers[0] == teamNumbers[1])
+    {
+      FAIL("Both teams have the same team number: " << teamNumbers[0]);
+      teamNumbers[1] = (teamNumbers[0] + 1) % 256;
+    }
+    teamInfos[0].number = static_cast<uint8_t>(teamNumbers[0]);
+    teamInfos[1].number = static_cast<uint8_t>(teamNumbers[1]);
+  }
+
   gameController.setTeamInfos(teamInfos);
 
   std::string location = "Default";
-  SimRobot::Object* locationObject = application->resolveObject("RoboCup.location", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore2::compound));
+  SimRobot::Object* locationObject = application->resolveObject("RoboCup.location", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore3::compound));
   if(locationObject)
   {
     ASSERT(application->getObjectChildCount(*locationObject) == 1);
@@ -119,7 +141,7 @@ bool RoboCupCtrl::compile()
 
   const std::string defaultScenario = is2D ? "2D" : "Default";
   std::array<std::string, 2> scenarios = {defaultScenario, defaultScenario};
-  SimRobot::Object* scenariosObject = application->resolveObject("RoboCup.scenarios", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore2::compound));
+  SimRobot::Object* scenariosObject = application->resolveObject("RoboCup.scenarios", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore3::compound));
   if(scenariosObject)
   {
     const unsigned count = application->getObjectChildCount(*scenariosObject);
@@ -139,14 +161,20 @@ bool RoboCupCtrl::compile()
   }
 
   // get interfaces to simulated objects
-  SimRobot::Object* group = application->resolveObject("RoboCup.robots", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore2::compound));
+  SimRobot::Object* group = application->resolveObject("RoboCup.robots", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore3::compound));
 
+  const Settings::RobotType robotType = getRobotType();
+  std::string robotName = TypeRegistry::getEnumName(robotType);
+  robotName[0] &= ~0x20;
+  robotName = "Simulated" + robotName;
   for(unsigned currentRobot = 0, count = application->getObjectChildCount(*group); currentRobot < count; ++currentRobot)
   {
     SimRobot::Object* robot = application->getObjectChild(*group, currentRobot);
     const QString& fullName = robot->getFullName();
     const bool firstTeam = SimulatedRobot::isFirstTeam(robot);
-    robots.push_back(new ControllerRobot(Settings("Nao", "Nao",
+    robots.push_back(new ControllerRobot(Settings(robotName, robotName,
+                                                  simStepLength * 0.001f,
+                                                  robotType,
                                                   teamInfos[firstTeam ? 0 : 1].number,
                                                   teamInfos[firstTeam ? 0 : 1].fieldPlayerColor,
                                                   teamInfos[firstTeam ? 0 : 1].goalkeeperColor,
@@ -156,7 +184,7 @@ bool RoboCupCtrl::compile()
                                          fullName.mid(fullName.lastIndexOf('.') + 1).toUtf8().constData(),
                                          static_cast<ConsoleRoboCupCtrl*>(this)));
   }
-  const SimRobot::Object* balls = application->resolveObject("RoboCup.balls", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore2::compound));
+  const SimRobot::Object* balls = application->resolveObject("RoboCup.balls", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore3::compound));
   if(balls)
   {
     SimulatedRobot::setBall(application->getObjectChild(*balls, 0));
@@ -168,11 +196,12 @@ bool RoboCupCtrl::compile()
     }
     else
     {
-      SimRobotCore2::Geometry* ballGeom = static_cast<SimRobotCore2::Geometry*>(application->resolveObject("RoboCup.balls.ball.SphereGeometry", SimRobotCore2::geometry));
+      SimRobotCore3::Geometry* ballGeom = static_cast<SimRobotCore3::Geometry*>(application->resolveObject("RoboCup.balls.ball.SphereGeometry", SimRobotCore3::geometry));
       if(ballGeom)
         ballGeom->registerCollisionCallback(*this);
     }
   }
+  gameController.loadBallSpecification();
 
   return true;
 }
@@ -267,6 +296,23 @@ SimRobot::Object* RoboCupCtrl::addCategory(const QString& name, const QString& p
   return addCategory(name, parent);
 }
 
+Settings::RobotType RoboCupCtrl::getRobotType() const
+{
+  SimRobot::Object* robotTypeObject = application->resolveObject("RoboCup.robot type", is2D ? static_cast<int>(SimRobotCore2D::compound) : static_cast<int>(SimRobotCore3::compound));
+  if(robotTypeObject)
+  {
+    ASSERT(application->getObjectChildCount(*robotTypeObject) == 1);
+    const QString& robotTypeFullName = application->getObjectChild(*robotTypeObject, 0)->getFullName();
+    const std::string robotTypeName = robotTypeFullName.mid(robotTypeFullName.lastIndexOf('.') + 1).toUtf8().constData();
+    int robotTypeValue = TypeRegistry::getEnumValue(typeid(Settings::RobotType).name(), robotTypeName.c_str());
+    if(robotTypeValue != -1)
+      return static_cast<Settings::RobotType>(robotTypeValue);
+    else
+      FAIL("Robot type \"" << robotTypeName << "\" does not exist.");
+  }
+  return Settings::nao;
+}
+
 void RoboCupCtrl::start()
 {
 #ifdef WINDOWS
@@ -318,9 +364,9 @@ void RoboCupCtrl::update()
   Time::addSimulatedTime(static_cast<int>(simStepLength + 0.5f));
 }
 
-void RoboCupCtrl::collided(SimRobotCore2::Geometry&, SimRobotCore2::Geometry& geom2)
+void RoboCupCtrl::collided(SimRobotCore3::Geometry&, SimRobotCore3::Geometry& geom2)
 {
-  SimRobotCore2::Body* body = geom2.getParentBody();
+  SimRobotCore3::Body* body = geom2.getParentBody();
   if(!body)
     return;
   body = body->getRootBody();

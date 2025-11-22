@@ -22,7 +22,6 @@ unsigned SetPlay::opponentFreeKickBegin = 0;
 
 SetPlay::Type SetPlay::Type_Info::numOfElements = SetPlay::none;
 
-//reg() 用于注册定位球动作的枚举类型。它将不同的定位球动作类型添加到Type中，并更新相应的索引变量。
 void SetPlay::Type_Info::reg()
 {
   PUBLISH(reg);

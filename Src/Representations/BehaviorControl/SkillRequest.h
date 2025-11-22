@@ -15,10 +15,10 @@
 STREAMABLE(SkillRequest,
 {
   /** When adding a type for playing the ball, add them to
-   * - HandlePenaltyKick        罚点球
-   * - HandleStrikerLostBall    丢球找球
-   * - SkillBehaviorControl     主循环
-   * - PlayBall                 进攻者语言
+   * - HandlePenaltyKick
+   * - HandleStrikerLostBall
+   * - SkillBehaviorControl
+   * - PlayBall
    */
   ENUM(Type,
   {,
@@ -34,8 +34,6 @@ STREAMABLE(SkillRequest,
     clear,
   });
 
-  //策略层传递给行为层的指令
-  //这些函数就是设置skillrequest的skill
   struct Builder
   {
     // All coordinates/angles/directions are in field coordinates.

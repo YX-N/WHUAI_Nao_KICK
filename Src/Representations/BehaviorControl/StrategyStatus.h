@@ -27,5 +27,5 @@ STREAMABLE(StrategyStatus, COMMA public BHumanCompressedMessageParticle<Strategy
   (SetPlay::Type)(SetPlay::none) acceptedSetPlay, /**< The actually used set play. */
   (int)(-1) setPlayStep, /**< The current step within the set play. */
   (Tactic::Position::Type)(Tactic::Position::none) position, /**< The current position. */
-  (Role::Type)(Role::none) role, /**< The current role. *///这里的role只有三种选择：none，activerole，positionrole
+  (Role::Type)(Role::none) role, /**< The current role. */
 });

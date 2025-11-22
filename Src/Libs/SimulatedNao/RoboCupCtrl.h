@@ -9,9 +9,9 @@
 #pragma once
 
 #include "SimulatedRobot.h"
-#include "GameController.h"
+#include "TestGameController.h"
 #include "Framework/Settings.h"
-#include <SimRobotCore2.h>
+#include <SimRobotCore3.h>
 #include <SimRobotCore2D.h>
 
 #include <QBrush>
@@ -26,7 +26,7 @@ class PaintMethods3DOpenGL;
 /**
  * The class implements the SimRobot controller for RoboCup.
  */
-class RoboCupCtrl : public SimRobot::Module, public SimRobotCore2::CollisionCallback, public SimRobotCore2D::CollisionCallback
+class RoboCupCtrl : public SimRobot::Module, public SimRobotCore3::CollisionCallback, public SimRobotCore2D::CollisionCallback
 {
   class Category : public SimRobot::Object
   {
@@ -48,7 +48,7 @@ class RoboCupCtrl : public SimRobot::Module, public SimRobotCore2::CollisionCall
 public:
   static RoboCupCtrl* controller; /**< A pointer to the SimRobot controller. */
   static SimRobot::Application* application; /**< The interface to the SimRobot GUI. */
-  GameController gameController;
+  TestGameController gameController;
   PaintMethods3DOpenGL* paintMethods3D = nullptr;
   bool is2D = false; /**< Whether the controller is loaded in the 2D simulator (otherwise it is 3D simulation). */
   float simStepLength; /**< The length of one simulation step (in ms). */
@@ -88,7 +88,7 @@ public:
   /**
    * Adds a scene graph object to the scene graph displayed in SimRobot
    * @param object The scene graph object to add
-   * @param categoryName The full name of the parent categroy
+   * @param categoryName The full name of the parent category
    * @param flags Some flags for registering the scene graph object (see SimRobot::Flag)
    */
   void addView(SimRobot::Object* object, const QString& categoryName, int flags = 0);
@@ -117,6 +117,12 @@ public:
    */
   SimRobot::Object* addCategory(const QString& name, const QString& parentName);
 
+  /**
+   * Determines the robot type from a special object present in the scene.
+   * @return The robot type.
+   */
+  Settings::RobotType getRobotType() const;
+
 protected:
   /**
    * The function is called to initialize the module.
@@ -134,7 +140,7 @@ protected:
    * @param geom1 The geometry at which the interface has been registered
    * @param geom2 The other geometry
    */
-  void collided(SimRobotCore2::Geometry& geom1, SimRobotCore2::Geometry& geom2) override;
+  void collided(SimRobotCore3::Geometry& geom1, SimRobotCore3::Geometry& geom2) override;
 
   /**
    * The callback function for the 2D core.
