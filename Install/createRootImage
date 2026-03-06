@@ -54,8 +54,6 @@ parseOptions() {
   fi
 }
 
-checkRoot
-
 checkApp "chroot"
 checkApp "debootstrap"
 checkApp "dd"
