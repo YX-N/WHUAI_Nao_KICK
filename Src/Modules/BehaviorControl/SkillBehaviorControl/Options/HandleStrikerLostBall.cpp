@@ -35,6 +35,7 @@ option((SkillBehaviorControl) HandleStrikerLostBall,
   {
     transition
     {
+      //striker 看不到球大于0.5s 距离球0.7m 并且球没有被遮挡
       if(playBall &&
          theFieldBall.timeSinceBallDisappeared > minBallDisappearedTime &&
          theFieldBall.positionRelative.squaredNorm() < sqr(maxDistanceToBall) &&

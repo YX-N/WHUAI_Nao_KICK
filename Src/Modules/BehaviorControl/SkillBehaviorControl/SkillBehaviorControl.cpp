@@ -130,6 +130,7 @@ void SkillBehaviorControl::update(ActivationGraph&)
 
 void SkillBehaviorControl::executeRequest()
 {
+  //空指令判断
   if(theSkillRequest.skill == SkillRequest::none)
   {
     if(theFrameInfo.getTimeSince(timeWhenAnnouncedEmptySkillRequest) > 5000)
@@ -139,18 +140,20 @@ void SkillBehaviorControl::executeRequest()
       timeWhenAnnouncedEmptySkillRequest = theFrameInfo.time;
     }
   }
+  //进攻判断
   else if(theSkillRequest.skill == SkillRequest::shoot ||
           theSkillRequest.skill == SkillRequest::pass ||
           theSkillRequest.skill == SkillRequest::dribble ||
           theSkillRequest.skill == SkillRequest::clear)
   {
-    PlayBall();
+    PlayBall(); //这里面包括了对进攻者的传球
   }
   else
   {
     // Check if a pass is communicated
     for(const Teammate& teammate : theTeamData.teammates)
     {
+      //如果有人要传球给我，对时效性进行判断
       if(teammate.theBehaviorStatus.passTarget == theGameState.playerNumber)
       {
         // Communicated message is not too old
@@ -169,6 +172,7 @@ void SkillBehaviorControl::executeRequest()
         }
       }
     }
+    //传球者踢出球后，接球者就会认为没人要他接球，为了延续接球者接球行为
     // Continue ReceivePass after communication stopped. Assume the sender just kicked the ball
     if(theFrameInfo.getTimeSince(lastReceivePassRequestTimestamp) < continueReceivePassTime && receivePassPlayerNumber != -1)
     {
@@ -176,11 +180,13 @@ void SkillBehaviorControl::executeRequest()
       ReceivePass({.playerNumber = receivePassPlayerNumber});
       return;
     }
-    receivePassPlayerNumber = -1;
+    receivePassPlayerNumber = -1;//终止接球判定
 
+    //根据机器人与球之间的距离来获得参数（isSlowingDownLookActive），应该是用来传给lookatball相关技能的，减少球过远时机器人的头部移动
     // slow head movements of LookActive down if the ball is far away
     isSlowingDownLookActive = (theFieldBall.positionOnField - theRobotPose.translation).squaredNorm() > sqr(2500.f + (isSlowingDownLookActive ? 0.f : 300.f));
 
+    //对除了进攻和接球者以外的球员的行为层的实现
     switch(theSkillRequest.skill)
     {
       case SkillRequest::stand:

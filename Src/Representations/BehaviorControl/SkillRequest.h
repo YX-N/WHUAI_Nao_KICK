@@ -15,10 +15,10 @@
 STREAMABLE(SkillRequest,
 {
   /** When adding a type for playing the ball, add them to
-   * - HandlePenaltyKick
-   * - HandleStrikerLostBall
-   * - SkillBehaviorControl
-   * - PlayBall
+   * - HandlePenaltyKick        罚点球
+   * - HandleStrikerLostBall    丢球找球
+   * - SkillBehaviorControl     主循环
+   * - PlayBall                 进攻者语言
    */
   ENUM(Type,
   {,

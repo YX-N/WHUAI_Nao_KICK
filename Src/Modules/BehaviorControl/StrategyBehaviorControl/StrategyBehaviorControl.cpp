@@ -25,6 +25,7 @@ std::vector<ModuleBase::Info> StrategyBehaviorControl::getExtModuleInfo()
   BehaviorBase::addToModuleInfo(result);
   return result;
 }
+//以上就是生成一个信息集合
 
 void StrategyBehaviorControl::update(SkillRequest& skillRequest)
 {
@@ -51,8 +52,10 @@ void StrategyBehaviorControl::update(SkillRequest& skillRequest)
     theStrategyStatus.role = Role::none;
     skillRequest = SkillRequest::Builder::stand();
   }
+  //上面的可以理解为在游戏开始和结束时候对机器人信息进行清空or初始化
   else
   {
+    //检查断言，self是一个Agent类型的参数，使用updateAgents（）生成并赋值给策略状态theStrategyStatus
     ASSERT(self);
 
     skillRequest = theBehavior.update(strategy, *self, agents);
@@ -73,6 +76,7 @@ void StrategyBehaviorControl::update(SkillRequest& skillRequest)
 
 Agent* StrategyBehaviorControl::updateAgents()
 {
+  //agents是有关于全部机器人的代理的容器，先把活跃的机器人加入agents
   // Add agents that are active now but weren't before.
   for(unsigned int i = 0; i < theGameState.ownTeam.playerStates.size(); ++i)
   {
@@ -90,8 +94,11 @@ Agent* StrategyBehaviorControl::updateAgents()
       agent.lastKnownTimestamp = theFrameInfo.time; // This is to avoid that "self" will write things into lastKnown* that were already sent a long time ago.
       agent.lastKnownPose = Vector2f(theFieldDimensions.xPosReturnFromPenalty, number % 2 ? theFieldDimensions.yPosLeftReturnFromPenalty : theFieldDimensions.yPosRightReturnFromPenalty);
     }
+    //因为是新添加的机器人，所以都认为他是从罚球点的左右两边返回的
+    //TODO:我们更改了机器人的编号，需要核对一下number%2
   }
 
+  //对agents里面的每一个成员检查，删除不活跃的机器人
   // Remove agents that are not active anymore.
   for(auto it = agents.begin(); it != agents.end();)
   {
@@ -121,6 +128,7 @@ Agent* StrategyBehaviorControl::updateAgents()
     }
   }
 
+  //把自己的代理用self继承
   // The list of agents is now final for this frame, so the self pointer can be set.
   Agent* self = nullptr;
   for(Agent& agent : agents)
@@ -130,15 +138,18 @@ Agent* StrategyBehaviorControl::updateAgents()
       break;
     }
 
+  //更新自己的代理
   if(self)
     updateAgentBySelf(*self);
 
+  //如果游戏开场是从边线开始（实际上只有两种情况及上下半场游戏机器人入场，即ready）
   if(theGameState.kickOffSetupFromTouchlines)
   {
     for(Agent& agent : agents)
     {
       agent.lastKnownPose = theSetupPoses.getPoseOfRobot(agent.number).position;
     }
+    //因为机器人站位站好以后才开始通信，这里可以理解为初始化
   }
   else if(theGameState.isSet() && theExtendedGameState.wasReady())
   {
@@ -181,6 +192,8 @@ void StrategyBehaviorControl::updateAgentBySelf(Agent& agent)
     agent.lastKnownTarget = theSentTeamMessage.theBehaviorStatus.walkingTo;
     agent.lastKnownSpeed = theSentTeamMessage.theBehaviorStatus.speed;
   }
+  //这段代码用来处理不同机器人对球定位的差异
+  //TODO:在决策中避免多个机器人同时去踢同一个球或错误的球
   agent.timestamp = theFrameInfo.time;
   agent.pose = theRobotPose;
   agent.ballPosition = theBallModel.estimate.position;
