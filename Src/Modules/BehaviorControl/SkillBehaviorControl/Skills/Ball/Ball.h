@@ -85,10 +85,12 @@ option(PassToTeammate, args((int) playerNumber));
  * @param kickPose The pose at which the kick should be executed in robot-relative coordinates
  * @param kickType The kick type that should be executed there
  * @param walkSpeed The walking speed as ratio of the maximum speed in [0, 1]
+ * @param kickLength The desired distance the ball shall roll
  */
 option(PenaltyStrikerGoToBallAndKick, args((const Pose2f&) kickPose,
                                            (KickInfo::KickType) kickType,
-                                           (Pose2f) walkSpeed));
+                                           (Pose2f) walkSpeed,
+                                           (float)(2500.f) kickLength));
 
 /** This skill plays the ball under consideration of the skill request. */
 option(PlayBall);
